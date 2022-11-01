@@ -8,11 +8,11 @@ import java.net.Socket;
 import java.net.UnknownHostException;
 import java.util.Scanner;
 
-public class Cliente {
+public class Cliente implements Runnable{
 	private static final String SERVER_ADDRESS = "127.0.0.1";
-	private Socket clientSocket;
+	private ClienteSocket clientSocket;
 	private Scanner scanner;
-	private PrintWriter out;
+	// private PrintWriter out;
 
 	public Cliente()
 	{
@@ -21,21 +21,42 @@ public class Cliente {
 
 	public void start() throws IOException
 	{
-		clientSocket = new Socket(SERVER_ADDRESS, Servidor.PORT);
-		this.out = new PrintWriter(clientSocket.getOutputStream(), true);
+		try {
+		clientSocket = new ClienteSocket(new Socket(SERVER_ADDRESS, Servidor.PORT));
+		// this.out = new PrintWriter(clientSocket.getOutputStream(), true); //envia mensagens para o servidor
 		
-		System.out.println("Cliente conectado ao servidor em " + SERVER_ADDRESS + ":" + Servidor.PORT);
+		// System.out.println("Cliente conectado ao servidor em " + SERVER_ADDRESS + ":" + Servidor.PORT);
+		new Thread(this).start();
 		messageLoop();
+		} finally {
+			clientSocket.close();
+		}
+	}
+
+	@Override
+	public void run()
+	{
+		String msg;
+		while((msg = clientSocket.getMessage()) != null)
+		System.out.println(msg); //mensagem recebida do servidor
 	}
 
 	private void messageLoop() throws IOException
 	{
 		String msg;
+		String username;
+		System.out.println("Informe seu username: ");
+		username = scanner.nextLine();
+
+		clientSocket.sendMsg(username);
+		System.out.println(username + " entrou no chat!");
+		
 		do{
-			System.out.println("Digite uma mensagem (ou sair para finalizar): ");
+			// System.out.println("Digite uma mensagem (ou sair para finalizar): ");
 			msg = scanner.nextLine();
-			out.println(msg); //mandando mensagem pro servidor
-			out.flush();
+			clientSocket.sendMsg(msg);
+			// out.println(msg); //mandando mensagem pro servidor
+			// out.flush();
 		} while(!msg.equalsIgnoreCase("sair"));
 	}
 
@@ -47,6 +68,6 @@ public class Cliente {
 		} catch (IOException ex){
 			System.out.println("Erro ao iniciar cliente: " + ex.getMessage());
 		}
-		System.out.println("Cliente finalizado!");
+		System.out.println("Voce saiu do chat!");
 	}
 }
