@@ -12,6 +12,7 @@ public class Cliente implements Runnable{
 	private static final String SERVER_ADDRESS = "127.0.0.1";
 	private ClienteSocket clientSocket;
 	private Scanner scanner;
+
 	// private PrintWriter out;
 
 	public Cliente()
@@ -22,12 +23,12 @@ public class Cliente implements Runnable{
 	public void start() throws IOException
 	{
 		try {
-		clientSocket = new ClienteSocket(new Socket(SERVER_ADDRESS, Servidor.PORT));
-		// this.out = new PrintWriter(clientSocket.getOutputStream(), true); //envia mensagens para o servidor
-		
-		// System.out.println("Cliente conectado ao servidor em " + SERVER_ADDRESS + ":" + Servidor.PORT);
-		new Thread(this).start();
-		messageLoop();
+			clientSocket = new ClienteSocket(new Socket(SERVER_ADDRESS, Servidor.PORT));
+			// this.out = new PrintWriter(clientSocket.getOutputStream(), true); //envia mensagens para o servidor
+			
+			// System.out.println("Cliente conectado ao servidor em " + SERVER_ADDRESS + ":" + Servidor.PORT);
+			new Thread(this).start();
+			messageLoop();
 		} finally {
 			clientSocket.close();
 		}
@@ -60,6 +61,8 @@ public class Cliente implements Runnable{
 		} while(!msg.equalsIgnoreCase("sair"));
 	}
 
+	
+
 	public static void main(String[] args) {
 		try {
 			Cliente client = new Cliente();
@@ -70,4 +73,5 @@ public class Cliente implements Runnable{
 		}
 		System.out.println("Voce saiu do chat!");
 	}
+
 }

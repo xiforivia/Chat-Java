@@ -10,15 +10,19 @@ public class ClienteSocket {
     private final BufferedReader in;
     private final PrintWriter out;
 
+    private boolean respondeu = false;
+    private int acertos;
+
     public ClienteSocket(Socket socket) throws IOException
     {
         this.socket = socket;
         System.out.println("Cliente " + socket.getRemoteSocketAddress() + " conectou");
         this.in = new BufferedReader(new InputStreamReader(socket.getInputStream())); //recebe mensagem do cliente
         this.out = new PrintWriter(socket.getOutputStream(), true); //envia mensagens para o servidor
+        float t = System.currentTimeMillis();
         // try{
-        // Thread.sleep(5000);
-        // System.out.println("passou 5s"); testando tempo, aqui fica 5 segundos certo, acho que para marcarmos o tempo tera q ser nesse arquivo
+        //     Thread.sleep(5000);
+        //     System.out.println("passou 5s"); //testando tempo, aqui fica 5 segundos certo, acho que para marcarmos o tempo tera q ser nesse arquivo
         // } catch (Exception e){
         //     System.out.println(e);
         // }
@@ -65,4 +69,17 @@ public class ClienteSocket {
         out.println(msg);
         return !out.checkError();
     }
+
+    public boolean getRespondeu(){
+		return respondeu;
+	}
+
+    public void setRespondeu(boolean respondeu){
+		this.respondeu = respondeu;
+	}
+
+    public void acertou(){
+        acertos++;
+    }
+
 }
