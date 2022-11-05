@@ -21,7 +21,13 @@ public class Cliente implements Runnable{
 	public void start() throws IOException
 	{
 		try {
-			clientSocket = new ClienteSocket(new Socket(SERVER_ADDRESS, Servidor.PORT));
+			System.out.println("Digite o IP do servidor");
+			String server_address = scanner.nextLine();
+
+			System.out.println("Digite a porta");
+			String porta = scanner.nextLine();
+
+			clientSocket = new ClienteSocket(new Socket(server_address, Servidor.PORT));
 		
 			new Thread(this).start();
 			messageLoop();
@@ -41,8 +47,8 @@ public class Cliente implements Runnable{
 	private void messageLoop() throws IOException
 	{
 		String msg;
-		String username;
-		System.out.println("Informe seu username: ");
+		String username = "default username";
+		while(username.equals("default username")) System.out.println("Informe seu username: ");
 		username = scanner.nextLine();
 
 		clientSocket.sendMsg(username);

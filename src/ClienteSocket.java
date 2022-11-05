@@ -5,12 +5,13 @@ import java.net.Socket;
 import java.net.SocketAddress;
 import java.io.PrintWriter;
 
-public class ClienteSocket {
+public class ClienteSocket implements Comparable<ClienteSocket> {
     private final Socket socket;
     private final BufferedReader in;
     private final PrintWriter out;
 
     private int acertos;
+    private String username;
 
     public ClienteSocket(Socket socket) throws IOException
     {
@@ -37,14 +38,17 @@ public class ClienteSocket {
         }
     }
 
+    public void setUsername(){
+        try{
+            this.username = in.readLine();
+        } catch(IOException e){
+            this.username = null;
+        }
+    }
+
     public String getUsername()
     {
-        try{
-        return in.readLine();
-        } catch(IOException e){
-            return null;
-        }
-
+       return username;
     }
 
     public String getMessage()
@@ -65,5 +69,16 @@ public class ClienteSocket {
     public void acertou(){
         acertos++;
     }
+
+    public int getAcertos(){
+        return acertos;
+    }
+
+	@Override
+	public int compareTo(ClienteSocket o) {
+        if(this.acertos < o.acertos) return 1;
+        else if (this.acertos > o.acertos) return -1;
+		return 0;
+	}
 
 }

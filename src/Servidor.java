@@ -3,6 +3,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -22,7 +23,8 @@ public class Servidor {
 
 	private State serverState = State.CHAT;
 
-	private int contador;
+	private int contador = 0;
+	private int perguntasPorQuiz = 3;
 
 	public void start() throws IOException //inicializa o server socket
 	{
@@ -45,9 +47,10 @@ public class Servidor {
 	private void clientMessageLoop(ClienteSocket clientSocket)
 	{ 
 		String msg;
-		String username;
-		username = clientSocket.getUsername();
-		msg = username + " entrou no chat!";
+		clientSocket.setUsername();
+	
+		String username = clientSocket.getUsername();	
+		msg = username + " entrou no chat!\n";
 		sendMsgToAll(clientSocket, msg);
 		System.out.println(username);
 
@@ -66,11 +69,9 @@ public class Servidor {
                     if(msg.equalsIgnoreCase("Iniciar Quiz")) startQuiz();
                 }
                 else if(getState() == State.QUIZ) {
-					contador += 1;
                     System.out.println("Recebeu uma mensagem no estado Quiz");
 					verifyAnswer(clientSocket, msg);
-					if(verifyEnd())
-						startChat();
+					if(verifyEnd())	startChat();
 				}
                 else if(getState() == State.BREAK) {
                     System.out.println("Recebeu uma mensagem no estado Break");
@@ -87,8 +88,9 @@ public class Servidor {
 	}
 
 	private void startQuiz(){
+		contador += 1;
 		setState(State.QUIZ);
-		sendMsgToAll(getQuestion());
+		sendMsgToAll(getQuestion() + "\nDigite a alternativa correta: ");
 	}
 	
 	private void startChat(){
@@ -108,15 +110,23 @@ public class Servidor {
 		}
 		if(haveAllAnswers()){
 			sendMsgToAll(String.format("A resposta correta era: \"%s\"", getAnswer()));
-			clientesRespondidos.clear();
-			startBreak();
+			if(contador < perguntasPorQuiz) {
+			    clientesRespondidos.clear();
+				startBreak();
+			}
 		}
 	}	
 
 	private boolean verifyEnd(){
-		if(contador == 10){
-			// mostrar ranking
-			
+		if(contador >= perguntasPorQuiz && haveAllAnswers()){
+			String ranking = "------- RESULTADOS --------\n";
+			Collections.sort(clientes);
+			for (int i = 1; i <= clientes.size(); i++){
+				ranking += String.format("%d° - %s: %d/%d\n", i, clientes.get(i - 1).getUsername(), clientes.get(i - 1).getAcertos(), perguntasPorQuiz);
+			}
+			ranking += "\nQuiz finalizado, voltando ao chat";
+			clientesRespondidos.clear();
+			sendMsgToAll(ranking);
 			return true;
 		}
 		return false;
