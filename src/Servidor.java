@@ -22,6 +22,8 @@ public class Servidor {
 
 	private State serverState = State.CHAT;
 
+	private int contador;
+
 	public void start() throws IOException //inicializa o server socket
 	{
 		serverSocket = new ServerSocket(PORT);
@@ -35,102 +37,8 @@ public class Servidor {
 		{
 			ClienteSocket clientSocket = new ClienteSocket(serverSocket.accept());
 			clientes.add(clientSocket); //adiciona cliente na lista de clientes
-			// Socket clientSocket = serverSocket.accept();
-			// System.out.println("Cliente " + clientSocket.getRemoteSocketAddress() + " conectou");
-			// BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream())); //recebe mensagem do cliente
-			// String msg = in.readLine(); //sabe que a mensagem está completa quando vê uma quebra de linha
-			// new Thread(() -> in.readLine()).start();
+
 			new Thread(() -> clientMessageLoop(clientSocket)).start();
-
-			// System.out.println("Mensagem recebida do cliente " + clientSocket.getRemoteSocketAddress() + ": " + msg);
-		}
-	}
-
-	private void chat(ClienteSocket clientSocket, String username){
-		String msg;
-		try {
-			while((msg = clientSocket.getMessage()) != null)
-			{
-				if("sair".equalsIgnoreCase(msg))
-				{
-					sendMsgToAll(clientSocket, String.format("%s saiu do chat! %s", username, getState().toString()));
-					System.out.printf("Cliente %s desconectou\n", clientSocket.getRemoteSocketAddress());
-					return;
-				}
-				if("iniciar quiz".equalsIgnoreCase(msg))
-				{
-					sendMsgToAll(String.format("Iniciando QUIZ"));
-					System.out.println("Mudando para o estado QUIZ");
-					setState(State.QUIZ);
-					quiz(clientSocket, username);
-					break;
-				}
-
-				System.out.printf("Mensagem recebida do cliente %s: %s\n", clientSocket.getRemoteSocketAddress(), msg);
-				msg = username + ": " + msg;
-				sendMsgToAll(clientSocket, msg);
-			}
-		} finally {
-			clientSocket.close();
-		}
-	}
-
-	private void quiz(ClienteSocket clientSocket, String username){
-		// LOGICA DO QUIZ
-		String msg = null;
-		try {
-			System.out.printf("Antes de mandar pergunta");
-			sendMsgToAll(getQuestion()); //mandar a pergunta para tds
-			System.out.printf("Depois de mandar pergunta");
-			while(!haveAllAnswers() && (msg = clientSocket.getMessage()) != null) {
-				System.out.println(username + "entrou no while");
-				System.out.printf("Ainda não respondeu");
-				if(clientSocket.getRespondeu() == true)
-				{
-					sendMsg(clientSocket, "Voce ja respondeu!");
-				} else {
-					clientSocket.setRespondeu(true);
-					clientesRespondidos.add(clientSocket);
-					if(msg.equals(getAnswer())) 
-						clientSocket.acertou();
-				}
-			}	
-			sendMsgToAll(String.format("A resposta correta era %s", getAnswer()));
-			setState(State.BREAK);
-			intervalo(clientSocket, username);
-		}
-		finally {
-			clientSocket.close();
-		}
-	}
-
-	private void intervalo(ClienteSocket clientSocket, String username){
-		String msg;
-		try {
-			sendMsgToAll(String.format("Digite 'continuar' quando quiser ir para a proxima pergunta!"));
-			while((msg = clientSocket.getMessage()) != null)
-			{
-				if("sair".equalsIgnoreCase(msg))
-				{
-					sendMsgToAll(clientSocket, String.format("%s saiu do chat! %s", username, getState().toString()));
-					System.out.printf("Cliente %s desconectou\n", clientSocket.getRemoteSocketAddress());
-					return;
-				}
-
-				if("continuar".equalsIgnoreCase(msg))
-				{
-					sendMsgToAll(String.format("Proxima pergunta"));
-					System.out.println("Mudando para o estado QUIZ");
-					setState(State.QUIZ);
-					break;
-				}
-
-				System.out.printf("Mensagem recebida do cliente %s: %s\n", clientSocket.getRemoteSocketAddress(), msg);
-				msg = username + ": " + msg;
-				sendMsgToAll(clientSocket, msg);
-			}
-		} finally {
-			clientSocket.close();
 		}
 	}
 
@@ -142,19 +50,80 @@ public class Servidor {
 		msg = username + " entrou no chat!";
 		sendMsgToAll(clientSocket, msg);
 		System.out.println(username);
-		// chat(clientSocket, username);
-		if(getState() == State.CHAT){
-			chat(clientSocket, username);
-		} 
-		if (getState() == State.QUIZ){ //quando o server vai para o modo quiz
-			quiz(clientSocket, username);
-		}
-		if(getState() == State.BREAK){
-			intervalo(clientSocket, username);
-		} 
+
+		while(true) {
+            if((msg = clientSocket.getMessage()) != null){
+				if(msg.equalsIgnoreCase("sair")){
+					sendMsgToAll(clientSocket, String.format("%s saiu do chat!", username));
+					System.out.printf("Cliente %s desconectou\n", clientSocket.getRemoteSocketAddress());
+					clientes.remove(clientSocket);
+					break;
+				}
+
+                if(getState() == State.CHAT) {
+                    System.out.println("Recebeu uma mensagem no estado Chat");
+					sendMsgToAll(clientSocket, username + ": " + msg);
+                    if(msg.equalsIgnoreCase("Iniciar Quiz")) startQuiz();
+                }
+                else if(getState() == State.QUIZ) {
+					contador += 1;
+                    System.out.println("Recebeu uma mensagem no estado Quiz");
+					verifyAnswer(clientSocket, msg);
+					if(verifyEnd())
+						startChat();
+				}
+                else if(getState() == State.BREAK) {
+                    System.out.println("Recebeu uma mensagem no estado Break");
+					sendMsgToAll(clientSocket, username + ": " + msg);
+                    if(msg.equalsIgnoreCase("Continuar")) startQuiz();
+                }
+            }
+        }
 	}
 	
+	private void startBreak(){
+		setState(State.BREAK);
+		sendMsgToAll("Indo para o Intervalo! Digite 'continuar' quando quiser ir para a proxima pergunta!");
+	}
+
+	private void startQuiz(){
+		setState(State.QUIZ);
+		sendMsgToAll(getQuestion());
+	}
 	
+	private void startChat(){
+		setState(State.CHAT);
+	}
+
+	private void verifyAnswer (ClienteSocket clientSocket, String msg) {
+		//Verifica se acertou resposta
+		//Verifica se o player ja respondeu antes
+		System.out.printf("respondeu");
+		if(clientesRespondidos.contains(clientSocket))
+		{
+			sendMsg(clientSocket, "Voce ja respondeu!");
+		} else {
+			clientesRespondidos.add(clientSocket);
+			if(msg.equals(getAnswer())) clientSocket.acertou();
+		}
+		if(haveAllAnswers()){
+			sendMsgToAll(String.format("A resposta correta era: \"%s\"", getAnswer()));
+			clientesRespondidos.clear();
+			startBreak();
+		}
+	}	
+
+	private boolean verifyEnd(){
+		if(contador == 10){
+			// mostrar ranking
+			
+			return true;
+		}
+		return false;
+	}
+		
+		
+
 	private void sendMsgToAll(ClienteSocket sender, String msg) //Servidor encaminha a mensagem para todos
 	{
 		Iterator<ClienteSocket> iterator = clientes.iterator();
@@ -170,7 +139,6 @@ public class Servidor {
 			}
 		}
 	}
-
 
 	private void sendMsg(ClienteSocket sender, String msg) //Servidor encaminha a mensagem somente para o cliente especifico
 	{
@@ -189,7 +157,6 @@ public class Servidor {
 			}
 		}
 	}
-
 
 	public static void main(String[] args) {
 		try {
@@ -219,7 +186,9 @@ public class Servidor {
 	}
 
 	public boolean haveAllAnswers(){
-		if(clientesRespondidos.equals(clientes)) return true;
-		return false; 
+		for (ClienteSocket c : clientes)
+			if(!clientesRespondidos.contains(c)) return false;
+
+		return true;
 	}
 }

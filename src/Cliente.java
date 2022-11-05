@@ -13,8 +13,6 @@ public class Cliente implements Runnable{
 	private ClienteSocket clientSocket;
 	private Scanner scanner;
 
-	// private PrintWriter out;
-
 	public Cliente()
 	{
 		scanner = new Scanner(System.in);
@@ -24,9 +22,7 @@ public class Cliente implements Runnable{
 	{
 		try {
 			clientSocket = new ClienteSocket(new Socket(SERVER_ADDRESS, Servidor.PORT));
-			// this.out = new PrintWriter(clientSocket.getOutputStream(), true); //envia mensagens para o servidor
-			
-			// System.out.println("Cliente conectado ao servidor em " + SERVER_ADDRESS + ":" + Servidor.PORT);
+		
 			new Thread(this).start();
 			messageLoop();
 		} finally {
@@ -53,12 +49,12 @@ public class Cliente implements Runnable{
 		System.out.println(username + " entrou no chat!");
 		
 		do{
-			// System.out.println("Digite uma mensagem (ou sair para finalizar): ");
 			msg = scanner.nextLine();
 			clientSocket.sendMsg(msg);
-			// out.println(msg); //mandando mensagem pro servidor
-			// out.flush();
+
 		} while(!msg.equalsIgnoreCase("sair"));
+		System.out.println("Voce saiu do chat!");
+		System.exit(0);
 	}
 
 	
@@ -71,7 +67,6 @@ public class Cliente implements Runnable{
 		} catch (IOException ex){
 			System.out.println("Erro ao iniciar cliente: " + ex.getMessage());
 		}
-		System.out.println("Voce saiu do chat!");
 	}
 
 }
